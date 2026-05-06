@@ -121,7 +121,7 @@ if file_docentes and file_prod:
             st.error("⚠️ É necessário selecionar pelo menos um eixo para o cálculo.")
             st.stop()
             
-        with st.spinner("A processar as planilhas e calcular os indicadores. Por favor, aguarde..."):
+        with st.spinner("Processando as planilhas e calcular os indicadores. Por favor, aguarde..."):
             try:
                 # Leitura Híbrida (Docentes)
                 if file_docentes.name.endswith('.csv'):
@@ -258,9 +258,9 @@ if file_docentes and file_prod:
                 
             with col_res2:
                 st.subheader("💾 Exportação")
-                st.info("Descarregue o ranking completo de todos os docentes avaliados em formato Excel (.xlsx).")
+                st.info("Faça download do ranking completo de todos os docentes avaliados em formato Excel (.xlsx).")
                 st.download_button(
-                    label="📥 Descarregar Ranking (.xlsx)",
+                    label="📥 Download do Ranking (.xlsx)",
                     data=excel_buffer.getvalue(),
                     file_name="ranking_final_pibic_4_eixos.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
