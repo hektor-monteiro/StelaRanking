@@ -51,7 +51,6 @@ st.write("") # Espaçamento
 
 # 3.2 Escolha dos Tipos de Produção do Eixo 3
 opcoes_padrao_eixo3 = [
-    'Artigo publicado em periódicos',
     'Trabalho publicado em anais de evento', 
     'Capítulo de livro publicado',
     'Livro publicado', 
@@ -272,7 +271,13 @@ if file_docentes and file_prod:
             
             st.subheader("📈 Distribuição do Ranking por Área de Conhecimento")
             fig, ax = plt.subplots(figsize=(10, 5))
-            sns.boxplot(data=df_metrics, x='Área', y='Posição Ranking', palette='Set2', ax=ax)
+            
+            # 1. Boxplot (com showfliers=False para não desenhar outliers duas vezes)
+            sns.boxplot(data=df_metrics, x='Área', y='Posição Ranking', palette='Set2', showfliers=False, ax=ax)
+            
+            # 2. Stripplot (sobrepõe os pontos reais com leve transparência)
+            sns.stripplot(data=df_metrics, x='Área', y='Posição Ranking', color='black', alpha=0.4, size=4, jitter=True, ax=ax)
+            
             ax.set_title(f'Competitividade por Área (Calculado por {col_nota_final})')
             ax.invert_yaxis()
             ax.set_ylabel('Posição no Ranking')
