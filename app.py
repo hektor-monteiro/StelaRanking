@@ -9,7 +9,7 @@ st.set_page_config(page_title="Sistema PIBIC - UNIFEI", layout="wide", page_icon
 st.title("📊 Sistema Multicritério de Avaliação Docente - PIBIC/UNIFEI")
 st.markdown("""
 Esta ferramenta processa os dados extraídos do Stela Experta para gerar o **ranking institucional de bolsas PIBIC**.
-Selecione os eixos desejados e o método de cálculo matemático para a pontuação final.
+Selecione os eixos desejados, os tipos de produção válidos e o método de cálculo matemático para a pontuação final.
 """)
 
 st.divider()
@@ -45,7 +45,37 @@ with col_eixo2:
 with col_eixo3:
     eixo3_active = st.checkbox("Eixo 3: Formação (Orientações IC)", value=True)
 
-# 3.2 Escolha do Método Matemático
+st.write("") # Espaçamento
+
+# 3.2 Escolha dos Tipos de Produção do Eixo 2
+opcoes_padrao_eixo2 = [
+    'Artigo publicado em periódicos',
+    'Trabalho publicado em anais de evento', 
+    'Capítulo de livro publicado',
+    'Livro publicado', 
+    'Programa de computador', 
+    'Patentes e registros'
+]
+
+todas_opcoes_possiveis = opcoes_padrao_eixo2 + [
+    'Trabalhos técnicos', 'Apresentação de Trabalho e palestra', 
+    'Outra produção bibliográfica', 'Outra produção técnica',
+    'Desenvolvimento de material didático ou instrucional',
+    'Rede social, Website e blog', 'Assessoria e consultoria',
+    'Programa de Rádio ou TV'
+]
+
+st.markdown("**Quais tipos de produção devem compor o Eixo 2?**")
+target_production_types = st.multiselect(
+    "Selecione as categorias que deseja contabilizar (você pode adicionar ou remover itens):",
+    options=todas_opcoes_possiveis,
+    default=opcoes_padrao_eixo2,
+    disabled=not eixo2_active # Desativa se o Eixo 2 não estiver selecionado
+)
+
+st.write("") # Espaçamento
+
+# 3.3 Escolha do Método Matemático
 st.markdown("**Como a Nota Final deve ser calculada?**")
 metodo_calculo = st.radio(
     "Método de agregação dos eixos:",
@@ -66,6 +96,9 @@ if file_docentes and file_prod:
         if not (eixo1_active or eixo2_active or eixo3_active):
             st.error("⚠️ É necessário selecionar pelo menos um eixo para o cálculo.")
             st.stop()
+            
+        if eixo2_active and len(target_production_types) == 0:
+            st.warning("⚠️ O Eixo 2 está ativo, mas nenhum tipo de produção foi selecionado. Ele retornará nota zero para todos.")
             
         with st.spinner("A processar as planilhas e calcular os indicadores. Por favor, aguarde..."):
             
@@ -92,11 +125,6 @@ if file_docentes and file_prod:
                 st.stop()
 
             # Variáveis e Dicionários de Classificação
-            target_production_types = [
-                'Trabalho publicado em anais de evento', 'Capítulo de livro publicado',
-                'Programa de computador', 'Livro publicado', 'Patentes e registros',
-                'Artigo publicado em periódicos'
-            ]
             qualis_validos = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4']
 
             kw_eng = ['engenharia', 'civil', 'mecânica', 'mecatronica', 'elétrica', 'produção', 'hídrica', 'materiais', 'energia', 'automação', 'controle', 'sinais', 'potência', 'manufatura', 'aerospacial', 'mobilidade', 'telecomunicações', 'usinagem']
@@ -144,7 +172,7 @@ if file_docentes and file_prod:
                 metrics.append({
                     'Docente': prof,
                     'Eixo 1 (Qualis AB)': eixo1_qualis,
-                    'Eixo 2 (Ampliada Limpa)': eixo2_ampliada,
+                    'Eixo 2 (Produção Ampliada)': eixo2_ampliada,
                     'Eixo 3 (IC)': eixo3_ic,
                     'Área': max_area
                 })
@@ -153,11 +181,11 @@ if file_docentes and file_prod:
 
             # Normalização (0 a 1)
             max_eixo1 = df_metrics['Eixo 1 (Qualis AB)'].max() if df_metrics['Eixo 1 (Qualis AB)'].max() > 0 else 1
-            max_eixo2 = df_metrics['Eixo 2 (Ampliada Limpa)'].max() if df_metrics['Eixo 2 (Ampliada Limpa)'].max() > 0 else 1
+            max_eixo2 = df_metrics['Eixo 2 (Produção Ampliada)'].max() if df_metrics['Eixo 2 (Produção Ampliada)'].max() > 0 else 1
             max_eixo3 = df_metrics['Eixo 3 (IC)'].max() if df_metrics['Eixo 3 (IC)'].max() > 0 else 1
             
             df_metrics['Eixo 1 Norm'] = df_metrics['Eixo 1 (Qualis AB)'] / max_eixo1
-            df_metrics['Eixo 2 Norm'] = df_metrics['Eixo 2 (Ampliada Limpa)'] / max_eixo2
+            df_metrics['Eixo 2 Norm'] = df_metrics['Eixo 2 (Produção Ampliada)'] / max_eixo2
             df_metrics['Eixo 3 Norm'] = df_metrics['Eixo 3 (IC)'] / max_eixo3
             
             # Cálculo da Nota Final baseado na escolha do utilizador
@@ -194,7 +222,7 @@ if file_docentes and file_prod:
                 st.subheader("🏆 Top 15 - Ranking Geral")
                 display_cols = ['Posição Ranking', 'Docente', col_nota_final, 'Área']
                 if eixo1_active: display_cols.append('Eixo 1 (Qualis AB)')
-                if eixo2_active: display_cols.append('Eixo 2 (Ampliada Limpa)')
+                if eixo2_active: display_cols.append('Eixo 2 (Produção Ampliada)')
                 if eixo3_active: display_cols.append('Eixo 3 (IC)')
                 
                 st.dataframe(df_metrics[display_cols].head(15), use_container_width=True, hide_index=True)
@@ -205,7 +233,7 @@ if file_docentes and file_prod:
                 st.download_button(
                     label="📥 Descarregar Ranking (.xlsx)",
                     data=excel_buffer.getvalue(),
-                    file_name="ranking_final_pibic_dinamico.xlsx",
+                    file_name="ranking_final_pibic_parametrizavel.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
@@ -222,4 +250,3 @@ if file_docentes and file_prod:
             st.pyplot(fig)
 else:
     st.warning("⚠️ Aguarde o upload de ambos os ficheiros para iniciar o cálculo.")
-
