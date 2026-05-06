@@ -4,18 +4,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
 
-# Configuração da página da aplicação
 st.set_page_config(page_title="Sistema PIBIC - UNIFEI", layout="wide", page_icon="📊")
 
 st.title("📊 Sistema Multicritério de Avaliação Docente - PIBIC/UNIFEI")
 st.markdown("""
 Esta ferramenta processa os dados extraídos do Stela Experta para gerar o **ranking institucional de bolsas PIBIC**.
-O algoritmo avalia 3 eixos: **(1) Qualis A e B, (2) Produção Ampliada e Inovação, e (3) Formação (IC)**.
+Selecione os eixos desejados e o método de cálculo matemático para a pontuação final.
 """)
 
 st.divider()
 
-# Áreas de Upload (lado a lado) - AGORA ACEITAM XLSX
+# ==========================================
+# 1. ENTRADA DE FICHEIROS
+# ==========================================
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("1. Lista de Servidores (Filtro)")
@@ -29,15 +30,47 @@ with col2:
 
 st.divider()
 
+# ==========================================
+# 2. CONFIGURAÇÃO DE PARÂMETROS
+# ==========================================
+st.subheader("3. Configuração do Cálculo")
+
+# 3.1 Escolha dos Eixos
+st.markdown("**Quais métricas irão compor o ranking?**")
+col_eixo1, col_eixo2, col_eixo3 = st.columns(3)
+with col_eixo1:
+    eixo1_active = st.checkbox("Eixo 1: Excelência (Qualis A e B)", value=True)
+with col_eixo2:
+    eixo2_active = st.checkbox("Eixo 2: Produção Ampliada Limpa", value=True)
+with col_eixo3:
+    eixo3_active = st.checkbox("Eixo 3: Formação (Orientações IC)", value=True)
+
+# 3.2 Escolha do Método Matemático
+st.markdown("**Como a Nota Final deve ser calculada?**")
+metodo_calculo = st.radio(
+    "Método de agregação dos eixos:",
+    options=["Soma (Aditivo: valoriza o acúmulo de produção em várias frentes)", 
+             "Média (Compensatório: nivela a nota máxima sempre em 1.0)"],
+    horizontal=True
+)
+
+st.divider()
+
+# ==========================================
+# 3. PROCESSAMENTO DOS DADOS
+# ==========================================
 if file_docentes and file_prod:
     if st.button("🚀 Processar Dados e Gerar Ranking", use_container_width=True):
-        with st.spinner("A processar as planilhas. Por favor, aguarde..."):
+        
+        # Validação de eixos
+        if not (eixo1_active or eixo2_active or eixo3_active):
+            st.error("⚠️ É necessário selecionar pelo menos um eixo para o cálculo.")
+            st.stop()
             
-            # ==========================================
-            # 1. LEITURA HÍBRIDA (PANDAS)
-            # ==========================================
+        with st.spinner("A processar as planilhas e calcular os indicadores. Por favor, aguarde..."):
+            
             try:
-                # Leitura da Lista de Docentes
+                # Leitura Híbrida (Docentes)
                 if file_docentes.name.endswith('.csv'):
                     df_docentes = pd.read_csv(file_docentes, skiprows=7)
                 else:
@@ -45,22 +78,20 @@ if file_docentes and file_prod:
                 
                 valid_names = df_docentes.iloc[:, 0].dropna().iloc[1:].unique()
 
-                # Leitura da Base Lattes
+                # Leitura Híbrida (Lattes)
                 if file_prod.name.endswith('.csv'):
                     df = pd.read_csv(file_prod, sep=';', skiprows=3, encoding='utf-8', on_bad_lines='skip')
                 else:
                     df = pd.read_excel(file_prod, skiprows=3)
                 
-                # Aplica o filtro de docentes válidos
+                # Filtrar base de Lattes pelos docentes válidos
                 df = df[df['Informada por'].isin(valid_names)]
                 
             except Exception as e:
                 st.error(f"Erro ao ler os ficheiros. Verifique se o formato está correto. Detalhe: {e}")
                 st.stop()
 
-            # ==========================================
-            # 2. LÓGICA DE AVALIAÇÃO (OS 3 EIXOS)
-            # ==========================================
+            # Variáveis e Dicionários de Classificação
             target_production_types = [
                 'Trabalho publicado em anais de evento', 'Capítulo de livro publicado',
                 'Programa de computador', 'Livro publicado', 'Patentes e registros',
@@ -68,7 +99,6 @@ if file_docentes and file_prod:
             ]
             qualis_validos = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4']
 
-            # Dicionários do classificador
             kw_eng = ['engenharia', 'civil', 'mecânica', 'mecatronica', 'elétrica', 'produção', 'hídrica', 'materiais', 'energia', 'automação', 'controle', 'sinais', 'potência', 'manufatura', 'aerospacial', 'mobilidade', 'telecomunicações', 'usinagem']
             kw_exatas = ['física', 'matemática', 'química', 'computação', 'estatística', 'meteorologia', 'geociências', 'dados', 'algoritmo', 'software', 'astro', 'equações', 'álgebra']
             kw_humanas = ['educação', 'ensino', 'humanidades', 'filosofia', 'sociologia', 'história', 'geografia', 'letras', 'linguística', 'pedagogia', 'aprendizagem', 'escola', 'administração', 'economia', 'direito', 'gestão', 'social', 'empreendedorismo', 'inovação', 'negócios']
@@ -77,6 +107,7 @@ if file_docentes and file_prod:
             professors = df['Informada por'].unique()
             metrics = []
 
+            # Extração de Métricas
             for prof in professors:
                 prof_data = df[df['Informada por'] == prof]
                 
@@ -90,12 +121,14 @@ if file_docentes and file_prod:
                                (qualis_counts.get('B1', 0) * 40) + (qualis_counts.get('B2', 0) * 30) + \
                                (qualis_counts.get('B3', 0) * 20) + (qualis_counts.get('B4', 0) * 10)
                 
-                # Eixo 2 e 3
+                # Eixo 2
                 eixo2_ampliada = len(prof_data[prof_data['Tipo da produção'].isin(target_production_types)])
+                
+                # Eixo 3
                 advising_data = prof_data[prof_data['Tipo agrupador da produção'] == 'Orientação concluída']
                 eixo3_ic = len(advising_data[advising_data['Tipo da produção'] == 'Iniciação Científica'])
                 
-                # Classificação de Área
+                # Área
                 text_data = prof_data['Título da produção'].fillna('') + ' ' + prof_data['Palavra chave 1'].fillna('')
                 text_data = ' '.join(text_data).lower()
                 
@@ -118,7 +151,7 @@ if file_docentes and file_prod:
 
             df_metrics = pd.DataFrame(metrics).fillna(0)
 
-            # Normalização e Nota Final
+            # Normalização (0 a 1)
             max_eixo1 = df_metrics['Eixo 1 (Qualis AB)'].max() if df_metrics['Eixo 1 (Qualis AB)'].max() > 0 else 1
             max_eixo2 = df_metrics['Eixo 2 (Ampliada Limpa)'].max() if df_metrics['Eixo 2 (Ampliada Limpa)'].max() > 0 else 1
             max_eixo3 = df_metrics['Eixo 3 (IC)'].max() if df_metrics['Eixo 3 (IC)'].max() > 0 else 1
@@ -127,24 +160,43 @@ if file_docentes and file_prod:
             df_metrics['Eixo 2 Norm'] = df_metrics['Eixo 2 (Ampliada Limpa)'] / max_eixo2
             df_metrics['Eixo 3 Norm'] = df_metrics['Eixo 3 (IC)'] / max_eixo3
             
-            df_metrics['Nota Final (0-3)'] = (df_metrics['Eixo 1 Norm'] + df_metrics['Eixo 2 Norm'] + df_metrics['Eixo 3 Norm'])/3
-            df_metrics.sort_values(by='Nota Final (0-3)', ascending=False, inplace=True)
+            # Cálculo da Nota Final baseado na escolha do utilizador
+            active_norms = []
+            if eixo1_active: active_norms.append(df_metrics['Eixo 1 Norm'])
+            if eixo2_active: active_norms.append(df_metrics['Eixo 2 Norm'])
+            if eixo3_active: active_norms.append(df_metrics['Eixo 3 Norm'])
+            
+            # Define o nome da coluna e executa a operação matemática
+            is_soma = "Soma" in metodo_calculo
+            col_nota_final = 'Nota Final (Soma)' if is_soma else 'Nota Final (Média)'
+            
+            if is_soma:
+                df_metrics[col_nota_final] = sum(active_norms)
+            else:
+                df_metrics[col_nota_final] = sum(active_norms) / len(active_norms)
+                
+            # Ordenação
+            df_metrics.sort_values(by=col_nota_final, ascending=False, inplace=True)
             df_metrics['Posição Ranking'] = range(1, len(df_metrics) + 1)
 
-            # ==========================================
-            # 3. INTERFACE DE RESULTADOS
-            # ==========================================
             st.success("✅ Processamento concluído com sucesso!")
             
-            # Preparar ficheiro para descarregar (Mantém a exportação em Excel ou CSV, como preferir)
+            # Preparar o Excel na memória
             excel_buffer = BytesIO()
             with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                 df_metrics.to_excel(writer, index=False, sheet_name='Ranking PIBIC')
             
+            # ==========================================
+            # 4. VISUALIZAÇÃO E EXPORTAÇÃO
+            # ==========================================
             col_res1, col_res2 = st.columns([2, 1])
             with col_res1:
                 st.subheader("🏆 Top 15 - Ranking Geral")
-                display_cols = ['Posição Ranking', 'Docente', 'Nota Final (0-3)', 'Área', 'Eixo 1 (Qualis AB)', 'Eixo 2 (Ampliada Limpa)', 'Eixo 3 (IC)']
+                display_cols = ['Posição Ranking', 'Docente', col_nota_final, 'Área']
+                if eixo1_active: display_cols.append('Eixo 1 (Qualis AB)')
+                if eixo2_active: display_cols.append('Eixo 2 (Ampliada Limpa)')
+                if eixo3_active: display_cols.append('Eixo 3 (IC)')
+                
                 st.dataframe(df_metrics[display_cols].head(15), use_container_width=True, hide_index=True)
                 
             with col_res2:
@@ -153,7 +205,7 @@ if file_docentes and file_prod:
                 st.download_button(
                     label="📥 Descarregar Ranking (.xlsx)",
                     data=excel_buffer.getvalue(),
-                    file_name="ranking_final_pibic.xlsx",
+                    file_name="ranking_final_pibic_dinamico.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
@@ -163,10 +215,11 @@ if file_docentes and file_prod:
             st.subheader("📈 Distribuição do Ranking por Área de Conhecimento")
             fig, ax = plt.subplots(figsize=(10, 5))
             sns.boxplot(data=df_metrics, x='Área', y='Posição Ranking', palette='Set2', ax=ax)
-            ax.set_title('Competitividade por Área (Quanto mais perto do topo, melhor)')
+            ax.set_title(f'Competitividade por Área (Calculado por {col_nota_final})')
             ax.invert_yaxis()
             ax.set_ylabel('Posição no Ranking')
             plt.xticks(rotation=15)
             st.pyplot(fig)
 else:
     st.warning("⚠️ Aguarde o upload de ambos os ficheiros para iniciar o cálculo.")
+
