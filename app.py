@@ -20,12 +20,12 @@ st.divider()
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("1. Lista de Servidores (Filtro)")
-    st.info("Carregue a planilha 'Total de produções' (lista de indivíduos da instituição).")
+    st.info("Carregue a planilha 'Total de produções*'.")
     file_docentes = st.file_uploader("Lista de Docentes", type=['xlsx', 'xls', 'csv'], key="docentes")
 
 with col2:
     st.subheader("2. Extração do Lattes")
-    st.info("Carregue a planilha bruta 'busca_Produção' extraída do Stela Experta.")
+    st.info("Carregue a planilha 'busca_Produção_*' extraída do Stela Experta.")
     file_prod = st.file_uploader("Base Lattes", type=['xlsx', 'xls', 'csv'], key="lattes")
 
 st.divider()
@@ -43,7 +43,7 @@ with col_eixo1:
 with col_eixo2:
     eixo2_active = st.checkbox("Eixo 2: Razão Qualis (A / B)", value=True)
 with col_eixo3:
-    eixo3_active = st.checkbox("Eixo 3: Produção Ampliada Limpa", value=True)
+    eixo3_active = st.checkbox("Eixo 3: Produção Ampliada", value=True)
 with col_eixo4:
     eixo4_active = st.checkbox("Eixo 4: Orientações", value=True)
 
@@ -68,7 +68,7 @@ todas_opcoes_eixo3 = opcoes_padrao_eixo3 + [
 
 st.markdown("**Quais tipos de produção devem compor o Eixo 3?**")
 target_production_types = st.multiselect(
-    "Selecione as categorias contabilizadas na Produção Ampliada Limpa:",
+    "Selecione as categorias contabilizadas na Produção Ampliada:",
     options=todas_opcoes_eixo3,
     default=opcoes_padrao_eixo3,
     disabled=not eixo3_active
@@ -140,7 +140,7 @@ if file_docentes and file_prod:
                 df = df[df['Informada por'].isin(valid_names)]
                 
             except Exception as e:
-                st.error(f"Erro ao ler os ficheiros. Verifique se o formato está correto. Detalhe: {e}")
+                st.error(f"Erro ao ler os arquivos. Verifique se o formato está correto. Detalhe: {e}")
                 st.stop()
 
             # Variáveis e Dicionários de Classificação
@@ -198,7 +198,7 @@ if file_docentes and file_prod:
                     'Docente': prof,
                     'Eixo 1 (Qualis Total)': eixo1_qualis,
                     'Eixo 2 (Razão A/B)': eixo2_razao,
-                    'Eixo 3 (Ampliada Limpa)': eixo3_ampliada,
+                    'Eixo 3 (Prod. Ampliada)': eixo3_ampliada,
                     'Eixo 4 (Orientações)': eixo4_orientacoes,
                     'Área': max_area
                 })
@@ -208,12 +208,12 @@ if file_docentes and file_prod:
             # Normalização (0 a 1)
             max_eixo1 = df_metrics['Eixo 1 (Qualis Total)'].max() if df_metrics['Eixo 1 (Qualis Total)'].max() > 0 else 1
             max_eixo2 = df_metrics['Eixo 2 (Razão A/B)'].max() if df_metrics['Eixo 2 (Razão A/B)'].max() > 0 else 1
-            max_eixo3 = df_metrics['Eixo 3 (Ampliada Limpa)'].max() if df_metrics['Eixo 3 (Ampliada Limpa)'].max() > 0 else 1
+            max_eixo3 = df_metrics['Eixo 3 (Prod. Ampliada)'].max() if df_metrics['Eixo 3 (Prod. Ampliada)'].max() > 0 else 1
             max_eixo4 = df_metrics['Eixo 4 (Orientações)'].max() if df_metrics['Eixo 4 (Orientações)'].max() > 0 else 1
             
             df_metrics['Eixo 1 Norm'] = df_metrics['Eixo 1 (Qualis Total)'] / max_eixo1
             df_metrics['Eixo 2 Norm'] = df_metrics['Eixo 2 (Razão A/B)'] / max_eixo2
-            df_metrics['Eixo 3 Norm'] = df_metrics['Eixo 3 (Ampliada Limpa)'] / max_eixo3
+            df_metrics['Eixo 3 Norm'] = df_metrics['Eixo 3 (Prod. Ampliada)'] / max_eixo3
             df_metrics['Eixo 4 Norm'] = df_metrics['Eixo 4 (Orientações)'] / max_eixo4
             
             # Cálculo da Nota Final baseado na escolha do utilizador
@@ -251,7 +251,7 @@ if file_docentes and file_prod:
                 display_cols = ['Posição Ranking', 'Docente', col_nota_final, 'Área']
                 if eixo1_active: display_cols.append('Eixo 1 (Qualis Total)')
                 if eixo2_active: display_cols.append('Eixo 2 (Razão A/B)')
-                if eixo3_active: display_cols.append('Eixo 3 (Ampliada Limpa)')
+                if eixo3_active: display_cols.append('Eixo 3 (Prod. Ampliada)')
                 if eixo4_active: display_cols.append('Eixo 4 (Orientações)')
                 
                 st.dataframe(df_metrics[display_cols].head(15), use_container_width=True, hide_index=True)
