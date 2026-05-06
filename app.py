@@ -9,7 +9,7 @@ st.set_page_config(page_title="Sistema PIBIC - UNIFEI", layout="wide", page_icon
 st.title("📊 Sistema Multicritério de Avaliação Docente - PIBIC/UNIFEI")
 st.markdown("""
 Esta ferramenta processa os dados extraídos do Stela Experta para gerar o **ranking institucional de bolsas PIBIC**.
-Selecione os eixos desejados, os tipos de produção válidos e o método de cálculo matemático para a pontuação final.
+Selecione os eixos desejados, os tipos de produção/orientação válidos e o método matemático para a pontuação final.
 """)
 
 st.divider()
@@ -33,22 +33,24 @@ st.divider()
 # ==========================================
 # 2. CONFIGURAÇÃO DE PARÂMETROS
 # ==========================================
-st.subheader("3. Configuração do Cálculo")
+st.subheader("3. Configuração do Cálculo e Eixos")
 
 # 3.1 Escolha dos Eixos
 st.markdown("**Quais métricas irão compor o ranking?**")
-col_eixo1, col_eixo2, col_eixo3 = st.columns(3)
+col_eixo1, col_eixo2, col_eixo3, col_eixo4 = st.columns(4)
 with col_eixo1:
-    eixo1_active = st.checkbox("Eixo 1: Excelência (Qualis A e B)", value=True)
+    eixo1_active = st.checkbox("Eixo 1: Total Qualis (Soma A e B)", value=True)
 with col_eixo2:
-    eixo2_active = st.checkbox("Eixo 2: Produção Ampliada Limpa", value=True)
+    eixo2_active = st.checkbox("Eixo 2: Razão Qualis (A / B)", value=True)
 with col_eixo3:
-    eixo3_active = st.checkbox("Eixo 3: Formação (Orientações IC)", value=True)
+    eixo3_active = st.checkbox("Eixo 3: Produção Ampliada Limpa", value=True)
+with col_eixo4:
+    eixo4_active = st.checkbox("Eixo 4: Orientações", value=True)
 
 st.write("") # Espaçamento
 
-# 3.2 Escolha dos Tipos de Produção do Eixo 2
-opcoes_padrao_eixo2 = [
+# 3.2 Escolha dos Tipos de Produção do Eixo 3
+opcoes_padrao_eixo3 = [
     'Artigo publicado em periódicos',
     'Trabalho publicado em anais de evento', 
     'Capítulo de livro publicado',
@@ -57,7 +59,7 @@ opcoes_padrao_eixo2 = [
     'Patentes e registros'
 ]
 
-todas_opcoes_possiveis = opcoes_padrao_eixo2 + [
+todas_opcoes_eixo3 = opcoes_padrao_eixo3 + [
     'Trabalhos técnicos', 'Apresentação de Trabalho e palestra', 
     'Outra produção bibliográfica', 'Outra produção técnica',
     'Desenvolvimento de material didático ou instrucional',
@@ -65,22 +67,46 @@ todas_opcoes_possiveis = opcoes_padrao_eixo2 + [
     'Programa de Rádio ou TV'
 ]
 
-st.markdown("**Quais tipos de produção devem compor o Eixo 2?**")
+st.markdown("**Quais tipos de produção devem compor o Eixo 3?**")
 target_production_types = st.multiselect(
-    "Selecione as categorias que deseja contabilizar (você pode adicionar ou remover itens):",
-    options=todas_opcoes_possiveis,
-    default=opcoes_padrao_eixo2,
-    disabled=not eixo2_active # Desativa se o Eixo 2 não estiver selecionado
+    "Selecione as categorias contabilizadas na Produção Ampliada Limpa:",
+    options=todas_opcoes_eixo3,
+    default=opcoes_padrao_eixo3,
+    disabled=not eixo3_active
 )
 
 st.write("") # Espaçamento
 
-# 3.3 Escolha do Método Matemático
+# 3.3 Escolha dos Tipos de Orientação do Eixo 4
+opcoes_padrao_eixo4 = [
+    'Iniciação Científica',
+    'Dissertação de mestrado',
+    'Tese de doutorado'
+]
+
+todas_opcoes_eixo4 = opcoes_padrao_eixo4 + [
+    'Monografia de conclusão de curso de aperfeiçoamento/especialização',
+    'Trabalho de conclusão de curso de graduação',
+    'Orientação de outra natureza',
+    'Supervisão de pós-doutorado'
+]
+
+st.markdown("**Quais tipos de orientação devem compor o Eixo 4?**")
+target_advising_types = st.multiselect(
+    "Selecione as modalidades de orientação concluída:",
+    options=todas_opcoes_eixo4,
+    default=opcoes_padrao_eixo4,
+    disabled=not eixo4_active
+)
+
+st.write("") # Espaçamento
+
+# 3.4 Escolha do Método Matemático
 st.markdown("**Como a Nota Final deve ser calculada?**")
 metodo_calculo = st.radio(
-    "Método de agregação dos eixos:",
-    options=["Soma (Aditivo: valoriza o acúmulo de produção em várias frentes)", 
-             "Média (Compensatório: nivela a nota máxima sempre em 1.0)"],
+    "Método de agregação dos eixos (após a normalização 0-1 de cada um):",
+    options=["Soma (Aditivo: valoriza o acúmulo em várias frentes)", 
+             "Média (Compensatório: nivela a nota máxima em 1.0)"],
     horizontal=True
 )
 
@@ -92,16 +118,11 @@ st.divider()
 if file_docentes and file_prod:
     if st.button("🚀 Processar Dados e Gerar Ranking", use_container_width=True):
         
-        # Validação de eixos
-        if not (eixo1_active or eixo2_active or eixo3_active):
+        if not any([eixo1_active, eixo2_active, eixo3_active, eixo4_active]):
             st.error("⚠️ É necessário selecionar pelo menos um eixo para o cálculo.")
             st.stop()
             
-        if eixo2_active and len(target_production_types) == 0:
-            st.warning("⚠️ O Eixo 2 está ativo, mas nenhum tipo de produção foi selecionado. Ele retornará nota zero para todos.")
-            
         with st.spinner("A processar as planilhas e calcular os indicadores. Por favor, aguarde..."):
-            
             try:
                 # Leitura Híbrida (Docentes)
                 if file_docentes.name.endswith('.csv'):
@@ -117,7 +138,6 @@ if file_docentes and file_prod:
                 else:
                     df = pd.read_excel(file_prod, skiprows=3)
                 
-                # Filtrar base de Lattes pelos docentes válidos
                 df = df[df['Informada por'].isin(valid_names)]
                 
             except Exception as e:
@@ -126,6 +146,8 @@ if file_docentes and file_prod:
 
             # Variáveis e Dicionários de Classificação
             qualis_validos = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4']
+            qualis_A = ['A1', 'A2', 'A3', 'A4']
+            qualis_B = ['B1', 'B2', 'B3', 'B4']
 
             kw_eng = ['engenharia', 'civil', 'mecânica', 'mecatronica', 'elétrica', 'produção', 'hídrica', 'materiais', 'energia', 'automação', 'controle', 'sinais', 'potência', 'manufatura', 'aerospacial', 'mobilidade', 'telecomunicações', 'usinagem']
             kw_exatas = ['física', 'matemática', 'química', 'computação', 'estatística', 'meteorologia', 'geociências', 'dados', 'algoritmo', 'software', 'astro', 'equações', 'álgebra']
@@ -135,28 +157,32 @@ if file_docentes and file_prod:
             professors = df['Informada por'].unique()
             metrics = []
 
-            # Extração de Métricas
             for prof in professors:
                 prof_data = df[df['Informada por'] == prof]
                 
-                # Eixo 1
+                # Dados Bibliográficos
                 biblio_data = prof_data[prof_data['Tipo agrupador da produção'] == 'Produção bibliográfica']
                 biblio_qualis_ab = biblio_data[biblio_data['Estrato Qualis (2017/2020) unificado'].isin(qualis_validos)]
                 qualis_counts = biblio_qualis_ab['Estrato Qualis (2017/2020) unificado'].value_counts()
                 
-                eixo1_qualis = (qualis_counts.get('A1', 0) * 100) + (qualis_counts.get('A2', 0) * 85) + \
-                               (qualis_counts.get('A3', 0) * 70) + (qualis_counts.get('A4', 0) * 55) + \
-                               (qualis_counts.get('B1', 0) * 40) + (qualis_counts.get('B2', 0) * 30) + \
-                               (qualis_counts.get('B3', 0) * 20) + (qualis_counts.get('B4', 0) * 10)
+                # Eixo 1 (Pontuação Total Qualis)
+                eixo1_qualis = sum(qualis_counts.get(q, 0) * peso for q, peso in zip(['A1','A2','A3','A4','B1','B2','B3','B4'], [100, 85, 70, 55, 40, 30, 20, 10]))
                 
-                # Eixo 2
-                eixo2_ampliada = len(prof_data[prof_data['Tipo da produção'].isin(target_production_types)])
+                # Contagens absolutas para o Eixo 2
+                count_a = sum(qualis_counts.get(q, 0) for q in qualis_A)
+                count_b = sum(qualis_counts.get(q, 0) for q in qualis_B)
                 
-                # Eixo 3
+                # Eixo 2 (Razão A/B) - Se B for 0, a razão é apenas o número de A's (evita divisão por zero)
+                eixo2_razao = (count_a / count_b) if count_b > 0 else float(count_a)
+                
+                # Eixo 3 (Produção Ampliada Limpa)
+                eixo3_ampliada = len(prof_data[prof_data['Tipo da produção'].isin(target_production_types)])
+                
+                # Eixo 4 (Orientações)
                 advising_data = prof_data[prof_data['Tipo agrupador da produção'] == 'Orientação concluída']
-                eixo3_ic = len(advising_data[advising_data['Tipo da produção'] == 'Iniciação Científica'])
+                eixo4_orientacoes = len(advising_data[advising_data['Tipo da produção'].isin(target_advising_types)])
                 
-                # Área
+                # Área Inferida
                 text_data = prof_data['Título da produção'].fillna('') + ' ' + prof_data['Palavra chave 1'].fillna('')
                 text_data = ' '.join(text_data).lower()
                 
@@ -171,30 +197,33 @@ if file_docentes and file_prod:
                 
                 metrics.append({
                     'Docente': prof,
-                    'Eixo 1 (Qualis AB)': eixo1_qualis,
-                    'Eixo 2 (Produção Ampliada)': eixo2_ampliada,
-                    'Eixo 3 (IC)': eixo3_ic,
+                    'Eixo 1 (Qualis Total)': eixo1_qualis,
+                    'Eixo 2 (Razão A/B)': eixo2_razao,
+                    'Eixo 3 (Ampliada Limpa)': eixo3_ampliada,
+                    'Eixo 4 (Orientações)': eixo4_orientacoes,
                     'Área': max_area
                 })
 
             df_metrics = pd.DataFrame(metrics).fillna(0)
 
             # Normalização (0 a 1)
-            max_eixo1 = df_metrics['Eixo 1 (Qualis AB)'].max() if df_metrics['Eixo 1 (Qualis AB)'].max() > 0 else 1
-            max_eixo2 = df_metrics['Eixo 2 (Produção Ampliada)'].max() if df_metrics['Eixo 2 (Produção Ampliada)'].max() > 0 else 1
-            max_eixo3 = df_metrics['Eixo 3 (IC)'].max() if df_metrics['Eixo 3 (IC)'].max() > 0 else 1
+            max_eixo1 = df_metrics['Eixo 1 (Qualis Total)'].max() if df_metrics['Eixo 1 (Qualis Total)'].max() > 0 else 1
+            max_eixo2 = df_metrics['Eixo 2 (Razão A/B)'].max() if df_metrics['Eixo 2 (Razão A/B)'].max() > 0 else 1
+            max_eixo3 = df_metrics['Eixo 3 (Ampliada Limpa)'].max() if df_metrics['Eixo 3 (Ampliada Limpa)'].max() > 0 else 1
+            max_eixo4 = df_metrics['Eixo 4 (Orientações)'].max() if df_metrics['Eixo 4 (Orientações)'].max() > 0 else 1
             
-            df_metrics['Eixo 1 Norm'] = df_metrics['Eixo 1 (Qualis AB)'] / max_eixo1
-            df_metrics['Eixo 2 Norm'] = df_metrics['Eixo 2 (Produção Ampliada)'] / max_eixo2
-            df_metrics['Eixo 3 Norm'] = df_metrics['Eixo 3 (IC)'] / max_eixo3
+            df_metrics['Eixo 1 Norm'] = df_metrics['Eixo 1 (Qualis Total)'] / max_eixo1
+            df_metrics['Eixo 2 Norm'] = df_metrics['Eixo 2 (Razão A/B)'] / max_eixo2
+            df_metrics['Eixo 3 Norm'] = df_metrics['Eixo 3 (Ampliada Limpa)'] / max_eixo3
+            df_metrics['Eixo 4 Norm'] = df_metrics['Eixo 4 (Orientações)'] / max_eixo4
             
             # Cálculo da Nota Final baseado na escolha do utilizador
             active_norms = []
             if eixo1_active: active_norms.append(df_metrics['Eixo 1 Norm'])
             if eixo2_active: active_norms.append(df_metrics['Eixo 2 Norm'])
             if eixo3_active: active_norms.append(df_metrics['Eixo 3 Norm'])
+            if eixo4_active: active_norms.append(df_metrics['Eixo 4 Norm'])
             
-            # Define o nome da coluna e executa a operação matemática
             is_soma = "Soma" in metodo_calculo
             col_nota_final = 'Nota Final (Soma)' if is_soma else 'Nota Final (Média)'
             
@@ -221,9 +250,10 @@ if file_docentes and file_prod:
             with col_res1:
                 st.subheader("🏆 Top 15 - Ranking Geral")
                 display_cols = ['Posição Ranking', 'Docente', col_nota_final, 'Área']
-                if eixo1_active: display_cols.append('Eixo 1 (Qualis AB)')
-                if eixo2_active: display_cols.append('Eixo 2 (Produção Ampliada)')
-                if eixo3_active: display_cols.append('Eixo 3 (IC)')
+                if eixo1_active: display_cols.append('Eixo 1 (Qualis Total)')
+                if eixo2_active: display_cols.append('Eixo 2 (Razão A/B)')
+                if eixo3_active: display_cols.append('Eixo 3 (Ampliada Limpa)')
+                if eixo4_active: display_cols.append('Eixo 4 (Orientações)')
                 
                 st.dataframe(df_metrics[display_cols].head(15), use_container_width=True, hide_index=True)
                 
@@ -233,7 +263,7 @@ if file_docentes and file_prod:
                 st.download_button(
                     label="📥 Descarregar Ranking (.xlsx)",
                     data=excel_buffer.getvalue(),
-                    file_name="ranking_final_pibic_parametrizavel.xlsx",
+                    file_name="ranking_final_pibic_4_eixos.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
