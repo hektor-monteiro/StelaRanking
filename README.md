@@ -21,9 +21,7 @@ O sistema processa dados brutos extraídos da plataforma **Stela Experta** (base
 A produtividade de cada pesquisador é mensurada por meio de até 4 eixos independentes, que podem ser ativados ou desativados pela comissão na interface do sistema:
 
 ### Eixo 1: Excelência Bibliográfica (Total Qualis)
-Mede o volume e o impacto da produção em periódicos. O sistema filtra os artigos pelos extratos Qualis da CAPES (A1 a B4) e aplica a seguinte pontuação de peso:
-* **A1:** 100 pontos | **A2:** 85 pontos | **A3:** 70 pontos | **A4:** 55 pontos
-* **B1:** 40 pontos | **B2:** 30 pontos | **B3:** 20 pontos | **B4:** 10 pontos
+Mede o volume da produção em periódicos. O sistema filtra os artigos pelos extratos Qualis da CAPES (A1 a B4) obtendo o total de produções.
 * *(Extratos C ou publicações não pontuadas são ignorados).*
 
 ### Eixo 2: Razão de Impacto (Qualis A / Qualis B)

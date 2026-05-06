@@ -165,7 +165,7 @@ if file_docentes and file_prod:
                 qualis_counts = biblio_qualis_ab['Estrato Qualis (2017/2020) unificado'].value_counts()
                 
                 # Eixo 1 (Pontuação Total Qualis)
-                eixo1_qualis = sum(qualis_counts.get(q, 0) * peso for q, peso in zip(['A1','A2','A3','A4','B1','B2','B3','B4'], [100, 85, 70, 55, 40, 30, 20, 10]))
+                eixo1_qualis = sum(qualis_counts.get(q, 0) * peso for q, peso in zip(['A1','A2','A3','A4','B1','B2','B3','B4'], [1, 1, 1, 1, 1, 1, 1, 1]))
                 
                 # Contagens absolutas para o Eixo 2
                 count_a = sum(qualis_counts.get(q, 0) for q in qualis_A)
