@@ -119,7 +119,7 @@ if file_docentes and file_prod and file_pessoas:
             st.error("⚠️ Selecione pelo menos um eixo.")
             st.stop()
             
-        with st.spinner("A processar métricas Lattes e dados institucionais..."):
+        with st.spinner("Processando métricas Lattes e dados institucionais..."):
             try:
                 # 3.1 Leitura dos Arquivos
                 def load_file(file, skip=0, separator=';'):
@@ -144,7 +144,7 @@ if file_docentes and file_prod and file_pessoas:
             qualis_validos = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4']
             qualis_A = ['A1', 'A2', 'A3', 'A4']
             qualis_B = ['B1', 'B2', 'B3', 'B4']
-            pesos_qualis = [100, 85, 70, 55, 40, 30, 20, 10]
+            pesos_qualis = [1, 1, 1, 1, 1, 1, 1, 1]
 
             professors = df_prod['Informada por'].unique()
             metrics = []
