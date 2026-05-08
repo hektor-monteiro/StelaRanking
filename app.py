@@ -154,7 +154,7 @@ if file_docentes and file_prod and file_pessoas:
                 
                 # Eixo 1 e 2
                 biblio_data = prof_data[prof_data['Tipo agrupador da produção'] == 'Produção bibliográfica']
-                qualis_counts = biblio_data[biblio_data['Estrato Qualis (2017/2020) unificado'].isin(qualis_validos)]['Estrato Qualis (2017/2020) unificado'].value_counts()
+                qualis_counts = biblio_data[biblio_data['Estrato Qualis (2021/2024) oficial'].isin(qualis_validos)]['Estrato Qualis (2021/2024) oficial'].value_counts()
                 
                 eixo1_score = sum(qualis_counts.get(q, 0) * peso for q, peso in zip(qualis_validos, pesos_qualis))
                 
