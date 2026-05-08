@@ -119,7 +119,7 @@ if file_docentes and file_prod and file_pessoas:
             st.error("⚠️ Selecione pelo menos um eixo.")
             st.stop()
             
-        with st.spinner("Processando métricas Lattes e dados institucionais..."):
+        with st.spinner("Processando métricas Lattes e resolvendo coautorias agrupadas..."):
             try:
                 # 3.1 Leitura dos Arquivos
                 def load_file(file, skip=0, separator=';'):
@@ -128,13 +128,16 @@ if file_docentes and file_prod and file_pessoas:
                     return pd.read_excel(file, skiprows=skip)
 
                 df_docentes_raw = load_file(file_docentes, skip=7)
-                valid_names = df_docentes_raw.iloc[:, 0].dropna().iloc[1:].unique()
+                # Extrai os nomes válidos e garante que estão limpos
+                valid_names = df_docentes_raw.iloc[:, 0].dropna().iloc[1:].astype(str).str.strip().unique()
 
                 df_prod = load_file(file_prod, skip=3)
-                df_prod = df_prod[df_prod['Informada por'].isin(valid_names)]
+                # NÃO filtramos mais df_prod aqui com .isin(), senão perdemos os agrupamentos de nomes!
+                df_prod['Informada por'] = df_prod['Informada por'].astype(str)
 
                 df_pessoas = load_file(file_pessoas, skip=3, separator=',')
-                df_pessoas['Nome'] = df_pessoas['Nome'].str.strip()
+                df_pessoas.columns = df_pessoas.columns.str.strip() # Remove espaços invisíveis dos cabeçalhos
+                df_pessoas['Nome'] = df_pessoas['Nome'].astype(str).str.strip()
 
             except Exception as e:
                 st.error(f"Erro na leitura: {e}")
@@ -146,15 +149,22 @@ if file_docentes and file_prod and file_pessoas:
             qualis_B = ['B1', 'B2', 'B3', 'B4']
             pesos_qualis = [1, 1, 1, 1, 1, 1, 1, 1]
 
-            professors = df_prod['Informada por'].unique()
             metrics = []
 
-            for prof in professors:
-                prof_data = df_prod[df_prod['Informada por'] == prof]
+            # Percorremos a lista oficial de docentes do RH, e não a base de produções
+            for prof in valid_names:
                 
-                # Eixo 1 e 2
+                # O PULO DO GATO: Se o nome do professor estiver contido na célula (mesmo junto de outros), ele ganha a produção
+                prof_data = df_prod[df_prod['Informada por'].str.contains(prof, na=False, regex=False)]
+                
+                # Se o professor não tiver nenhuma produção reportada, não entra no ranking
+                if prof_data.empty:
+                    continue
+                
+                # Eixo 1 e 2 (Note que voltamos a ler a coluna oficial do quadriênio atual)
                 biblio_data = prof_data[prof_data['Tipo agrupador da produção'] == 'Produção bibliográfica']
-                qualis_counts = biblio_data[biblio_data['Estrato Qualis (2021/2024) oficial'].isin(qualis_validos)]['Estrato Qualis (2021/2024) oficial'].value_counts()
+                col_qualis = 'Estrato Qualis (2021/2024) oficial'
+                qualis_counts = biblio_data[biblio_data[col_qualis].isin(qualis_validos)][col_qualis].value_counts()
                 
                 eixo1_score = sum(qualis_counts.get(q, 0) * peso for q, peso in zip(qualis_validos, pesos_qualis))
                 
@@ -238,7 +248,7 @@ if file_docentes and file_prod and file_pessoas:
             # ==========================================
             # 4. RESULTADOS E GRÁFICOS
             # ==========================================
-            st.success("✅ Processamento concluído!")
+            st.success("✅ Processamento concluído: Coautorias contabilizadas corretamente!")
 
             excel_buffer = BytesIO()
             with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
@@ -257,7 +267,7 @@ if file_docentes and file_prod and file_pessoas:
             
             with col_res2:
                 st.subheader("💾 Exportação")
-                st.download_button("📥 Baixar Ranking Completo (.xlsx)", data=excel_buffer.getvalue(), file_name="ranking_pibic_5_eixos.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                st.download_button("📥 Baixar Ranking Completo (.xlsx)", data=excel_buffer.getvalue(), file_name="ranking_pibic_final.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
 
             st.divider()
             
