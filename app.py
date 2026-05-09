@@ -59,7 +59,7 @@ st.markdown("#### B. Parametrização de Categorias")
 col_param1, col_param2 = st.columns(2)
 
 with col_param1:
-    opcoes_padrao_e3 = ['Artigo publicado em periódicos', 'Trabalho publicado em anais de evento', 'Capítulo de livro publicado', 'Livro publicado', 'Programa de computador', 'Patentes e registros']
+    opcoes_padrao_e3 = ['Trabalho publicado em anais de evento', 'Capítulo de livro publicado', 'Livro publicado', 'Programa de computador', 'Patentes e registros']
     todas_opcoes_e3 = opcoes_padrao_e3 + ['Trabalhos técnicos', 'Apresentação de Trabalho e palestra', 'Outra produção bibliográfica', 'Outra produção técnica']
     target_production_types = st.multiselect("Categorias do Eixo 3:", options=todas_opcoes_e3, default=opcoes_padrao_e3, disabled=not eixo3_active)
 
@@ -211,24 +211,16 @@ if file_docentes and file_prod and file_pessoas:
             excel_buffer = BytesIO()
             with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                 df_final.to_excel(writer, index=False, sheet_name='Ranking')
-            st.download_button("📥 Baixar Ranking (.xlsx)", data=excel_buffer.getvalue(), file_name="ranking_pibic_auditoria.xlsx", use_container_width=True)
+            st.download_button("📥 Baixar Ranking (.xlsx)", data=excel_buffer.getvalue(), file_name="ranking_pibic_final.xlsx", use_container_width=True)
 
             # ==========================================
-            # 5. DIAGNÓSTICO DE VIESES
+            # 5. DIAGNÓSTICO DE VIESES (Layout Matrix / Dashboard)
             # ==========================================
             st.divider()
-            st.subheader("🕵️ Análise Diagnóstica de Vieses do Edital")
-            st.markdown("Utilize estes gráficos para auditar se o conjunto de regras atual favorece injustamente algum perfil de investigador ou área de conhecimento.")
+            st.header("🕵️ Dashboard Analítico de Vieses")
+            st.markdown("Avalie se o conjunto de regras atual favorece injustamente algum perfil de investigador ou área de conhecimento.")
 
-            tab1, tab2, tab3, tab4, tab5 = st.tabs([
-                "1. Redundância (Correlação)", 
-                "2. Perfil dos Vencedores", 
-                "3. Viés Disciplinar (Radar)", 
-                "4. Efeito Mateus (Senioridade)",
-                "5. Ordenação por Área (Boxplot)"
-            ])
-
-            # Mapeamento de eixos ativos para as legendas dos gráficos
+            # Mapeamento para legendas
             axis_cols = []
             if eixo1_active: axis_cols.append('E1_N')
             if eixo2_active: axis_cols.append('E2_N')
@@ -243,96 +235,99 @@ if file_docentes and file_prod and file_pessoas:
                 'E5_N': 'E5: Bibliometria', 'E6_N': 'E6: Periódicos'
             }
 
-            # --- TAB 1: Matriz de Correlação ---
-            with tab1:
-                st.markdown("**Matriz de Correlação:** Cores quentes (próximas de 1.0) indicam que os eixos medem praticamente a mesma coisa (Redundância).")
+            # Primeira Linha da Matriz
+            dash_col1, dash_col2 = st.columns(2)
+
+            with dash_col1:
+                st.subheader("1. Redundância (Correlação)")
+                st.markdown("""
+                **Uso:** Cores quentes (próximas de 1.0) indicam que dois eixos medem quase a mesma coisa. 
+                Se um eixo tiver correlação alta com a Nota Final, ele está a decidir o edital sozinho.
+                """)
                 corr_cols = axis_cols + [col_f]
                 corr_df = df_final[corr_cols].rename(columns=axis_labels).corr()
-                
-                fig_corr, ax_corr = plt.subplots(figsize=(8, 6))
-                sns.heatmap(corr_df, annot=True, cmap='coolwarm', vmin=-1, vmax=1, fmt=".2f", ax=ax_corr, linewidths=.5)
+                fig_corr, ax_corr = plt.subplots(figsize=(7, 5))
+                sns.heatmap(corr_df, annot=True, cmap='coolwarm', vmin=-1, vmax=1, fmt=".2f", ax=ax_corr, annot_kws={"size": 9})
+                plt.xticks(rotation=45, ha='right')
                 st.pyplot(fig_corr)
 
-            # --- TAB 2: Barras Empilhadas ---
-            with tab2:
-                st.markdown("**Composição da Nota (Top 20):** Avalie se os líderes são generalistas (barras coloridas e equilibradas) ou especialistas (uma cor domina o gráfico).")
+            with dash_col2:
+                st.subheader("2. Composição da Nota (Top 20)")
+                st.markdown("""
+                **Uso:** Avalia o perfil dos líderes. Barras equilibradas indicam docentes 'generalistas'. 
+                Uma única cor dominante indica que a pessoa ganhou apenas por uma métrica específica.
+                """)
                 top20 = df_final.head(20).copy()
                 top20.set_index('Docente', inplace=True)
                 top20_axes = top20[axis_cols].rename(columns=axis_labels)
-                
-                fig_bar, ax_bar = plt.subplots(figsize=(10, 8))
+                fig_bar, ax_bar = plt.subplots(figsize=(7, 5.5))
                 top20_axes.plot(kind='barh', stacked=True, ax=ax_bar, colormap='viridis')
                 ax_bar.invert_yaxis()
-                ax_bar.set_xlabel("Pontuação Normalizada Acumulada")
-                ax_bar.set_ylabel("")
-                ax_bar.legend(loc='upper right', bbox_to_anchor=(1.3, 1))
+                ax_bar.set_xlabel("Pontuação Acumulada")
+                ax_bar.legend(loc='lower right', fontsize=8)
                 st.pyplot(fig_bar)
 
-            # --- TAB 3: Gráfico de Radar ---
-            with tab3:
-                st.markdown("**Gráfico de Radar:** Compara a força média das grandes áreas. Uma teia 'puxada' para um dos lados indica que a métrica tem um viés cultural forte para aquela ciência.")
+            # Segunda Linha da Matriz
+            dash_col3, dash_col4 = st.columns(2)
+
+            with dash_col3:
+                st.subheader("3. Viés Disciplinar (Radar)")
+                st.markdown("""
+                **Uso:** Compara a força média das 4 maiores áreas. Uma teia 'puxada' para um lado 
+                indica que a métrica favorece a cultura de publicação daquela ciência específica.
+                """)
                 if len(axis_cols) >= 3:
                     top4_areas = df_final['Área'].value_counts().nlargest(4).index
                     radar_data = df_final[df_final['Área'].isin(top4_areas)].groupby('Área')[axis_cols].mean()
-                    
                     angles = np.linspace(0, 2 * np.pi, len(axis_cols), endpoint=False).tolist()
                     angles += angles[:1]
-                    
-                    fig_radar, ax_radar = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+                    fig_radar, ax_radar = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
                     for idx, row in radar_data.iterrows():
-                        values = row.tolist()
-                        values += values[:1]
+                        values = row.tolist() + row.tolist()[:1]
                         ax_radar.plot(angles, values, label=idx, linewidth=2)
-                        ax_radar.fill(angles, values, alpha=0.15)
-                    
-                    labels_radar = [axis_labels[col] for col in axis_cols]
+                        ax_radar.fill(angles, values, alpha=0.1)
                     ax_radar.set_xticks(angles[:-1])
-                    ax_radar.set_xticklabels(labels_radar, size=10)
-                    ax_radar.legend(loc='upper right', bbox_to_anchor=(1.4, 1.1))
+                    ax_radar.set_xticklabels([axis_labels[c] for c in axis_cols], size=9)
+                    ax_radar.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=8)
                     st.pyplot(fig_radar)
                 else:
-                    st.warning("São necessários pelo menos 3 eixos ativos para construir o gráfico de radar.")
+                    st.warning("Necessário 3+ eixos ativos para Radar.")
 
-            # --- TAB 4: Dispersão (Senioridade vs Posição) ---
-            with tab4:
-                st.markdown("**Efeito Mateus:** Se a linha for íngreme e aglomerada à esquerda, o edital favorece fortemente os investigadores mais antigos e consolidados, sufocando os mais jovens.")
-                
-                # Identifica qual métrica usar para a senioridade
+            with dash_col4:
+                st.subheader("4. Efeito Mateus (Senioridade)")
+                st.markdown("""
+                **Uso:** Se a linha for muito íngreme e os pontos se aglomerarem no topo à esquerda, 
+                o edital pode estar a privilegiar apenas investigadores consolidados, dificultando a entrada de jovens.
+                """)
                 seniority_col = 'E1_Abs'
-                label_sen = "Volume Bruto de Publicações (Proxy para tempo de carreira)"
-                
+                label_sen = "Volume de Publicações"
                 for col in df_final.columns:
                     if 'Índice H' in col and not col.endswith('_N'):
-                        seniority_col = col
-                        label_sen = col
+                        seniority_col, label_sen = col, col
                         break
-                        
-                fig_scatter, ax_scatter = plt.subplots(figsize=(10, 6))
-                sns.regplot(data=df_final, x='Posição', y=seniority_col, ax=ax_scatter,
-                            scatter_kws={'alpha':0.5, 'color':'#2c3e50'}, line_kws={'color':'#e74c3c'})
-                
-                ax_scatter.set_title(f"Senioridade ({label_sen}) vs Posição no Ranking")
-                ax_scatter.set_xlabel("Posição no Ranking (1º lugar à esquerda)")
+                fig_scatter, ax_scatter = plt.subplots(figsize=(7, 5))
+                sns.regplot(data=df_final, x='Posição', y=seniority_col, ax=ax_scatter, scatter_kws={'alpha':0.4}, line_kws={'color':'red'})
+                ax_scatter.set_xlim(df_final['Posição'].max() + 5, -5)
                 ax_scatter.set_ylabel(label_sen)
-                ax_scatter.set_xlim(df_final['Posição'].max() + 5, -5) # Inverte para o 1º ficar na esquerda
                 st.pyplot(fig_scatter)
 
-            # --- TAB 5: Boxplot de Áreas ---
-            with tab5:
-                st.markdown("**Competitividade por Área:** Distribuição ordenada das 15 áreas mais frequentes, da melhor classificada (menor mediana) para a pior.")
-                top_areas = df_final['Área'].value_counts().nlargest(15).index
-                df_plot = df_final[df_final['Área'].isin(top_areas)].copy()
-
-                area_order = df_plot.groupby('Área')['Posição'].median().sort_values().index
-
-                fig_box, ax_box = plt.subplots(figsize=(12, 6))
-                sns.boxplot(data=df_plot, x='Área', y='Posição', order=area_order, palette='Set3', showfliers=False, ax=ax_box)
-                sns.stripplot(data=df_plot, x='Área', y='Posição', order=area_order, color='black', alpha=0.3, size=3, ax=ax_box)
-                
-                ax_box.invert_yaxis()
-                plt.xticks(rotation=45, ha='right')
-                ax_box.set_ylabel('Posição no Ranking (Menor é Melhor)')
-                st.pyplot(fig_box)
+            # Terceira Linha (Largura Total)
+            st.divider()
+            st.subheader("5. Competitividade Geral por Área")
+            st.markdown("""
+            **Uso:** Distribuição das 15 áreas mais frequentes, ordenadas da melhor classificada (menor mediana) para a pior. 
+            Permite ver se áreas inteiras estão a ser 'empurradas' para o fim da lista.
+            """)
+            top_areas = df_final['Área'].value_counts().nlargest(15).index
+            df_plot = df_final[df_final['Área'].isin(top_areas)].copy()
+            area_order = df_plot.groupby('Área')['Posição'].median().sort_values().index
+            fig_box, ax_box = plt.subplots(figsize=(12, 6))
+            sns.boxplot(data=df_plot, x='Área', y='Posição', order=area_order, palette='Set3', showfliers=False, ax=ax_box)
+            sns.stripplot(data=df_plot, x='Área', y='Posição', order=area_order, color='black', alpha=0.3, size=3, ax=ax_box)
+            ax_box.invert_yaxis()
+            plt.xticks(rotation=45, ha='right', fontsize=9)
+            ax_box.set_ylabel('Posição (Menor é Melhor)')
+            st.pyplot(fig_box)
 
 else:
     st.info("⚠️ Aguarde o upload das três planilhas.")
