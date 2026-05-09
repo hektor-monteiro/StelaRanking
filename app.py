@@ -213,12 +213,25 @@ if file_docentes and file_prod and file_pessoas:
 
             # Gráfico
             st.divider()
+            st.subheader("📈 Distribuição do Ranking por Área de Titulação (Top 15 áreas mais frequentes)")
+            
+            # Utiliza a chave 'Área' correta
             top_areas = df_final['Área'].value_counts().nlargest(15).index
-            df_plot = df_final[df_final['Área'].isin(top_areas)]
+            df_plot = df_final[df_final['Área'].isin(top_areas)].copy()
+
+            # Calcula a mediana da posição de cada área e ordena da melhor para a pior
+            # Utiliza a chave 'Posição' correta
+            area_order = df_plot.groupby('Área')['Posição'].median().sort_values().index
+
             fig, ax = plt.subplots(figsize=(12, 6))
-            sns.boxplot(data=df_plot, x='Área', y='Posição', palette='Set3', showfliers=False, ax=ax)
-            sns.stripplot(data=df_plot, x='Área', y='Posição', color='black', alpha=0.3, size=3, ax=ax)
-            ax.invert_yaxis(); plt.xticks(rotation=45, ha='right')
+            
+            sns.boxplot(data=df_plot, x='Área', y='Posição', order=area_order, palette='Set3', showfliers=False, ax=ax)
+            sns.stripplot(data=df_plot, x='Área', y='Posição', order=area_order, color='black', alpha=0.3, size=3, ax=ax)
+            
+            ax.invert_yaxis()
+            plt.xticks(rotation=45, ha='right')
+            ax.set_ylabel('Posição no Ranking (Menor é Melhor)')
             st.pyplot(fig)
+            
 else:
     st.info("⚠️ Aguarde o upload das três planilhas.")
