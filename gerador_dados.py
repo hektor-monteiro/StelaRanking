@@ -3,10 +3,10 @@ import numpy as np
 
 # Configurações de base para as 4 categorias
 categorias = {
-    "Exatas Artigo": {"area": "Exatas Artigo", "q": "A1", "jif": 5.2, "conf": 0.1, "book": 0.0, "tech": 0.0, "h_base": 30},
-    "Exatas Tech":   {"area": "Exatas Tech", "q": "A2", "jif": 2.8, "conf": 0.5, "book": 0.1, "tech": 1.2, "h_base": 20},
-    "Humanas":       {"area": "Humanas", "q": "A1", "jif": 0.2, "conf": 0.3, "book": 1.5, "tech": 0.0, "h_base": 15},
-    "Computação":    {"area": "Computação", "q": "A3", "jif": 0.9, "conf": 4.0, "book": 0.2, "tech": 0.8, "h_base": 25}
+    "Exatas Artigo": {"area": "Exatas Artigo", "q": "A1", "jif": 3, "conf": 0.1, "book": 0.0, "tech": 0.0, "h_base": 20},
+    "Exatas Tech":   {"area": "Exatas Tech", "q": "A2", "jif": 2., "conf": 0.5, "book": 0.1, "tech": 2, "h_base": 20},
+    "Humanas":       {"area": "Humanas", "q": "A1", "jif": 1, "conf": 0.3, "book": 2, "tech": 0.0, "h_base": 20},
+    "Computação":    {"area": "Computação", "q": "A2", "jif": 1, "conf": 2.0, "book": 0.2, "tech": 0.5, "h_base": 20}
 }
 
 docentes, pessoas, producoes = [], [], []
