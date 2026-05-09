@@ -39,15 +39,17 @@ st.divider()
 # ==========================================
 st.subheader("2. Configuração do Cálculo e Eixos")
 
-# Bloco A: Ativação dos Eixos (Agora com 6 colunas)
+# Bloco A: Ativação dos Eixos (Layout corrigido para 3 colunas x 2 linhas)
 st.markdown("#### A. Ativação de Eixos")
-col_e1, col_e2, col_e3, col_e4, col_e5, col_e6 = st.columns(6)
-with col_e1: eixo1_active = st.checkbox("E1: Total Qualis", value=True)
-with col_e2: eixo2_active = st.checkbox("E2: Razão Qualis", value=True)
-with col_e3: eixo3_active = st.checkbox("E3: Prod. Ampliada", value=True)
-with col_e4: eixo4_active = st.checkbox("E4: Orientações", value=True)
-with col_e5: eixo5_active = st.checkbox("E5: Bibliometria (H)", value=True)
-with col_e6: eixo6_active = st.checkbox("E6: Qualidade Periód.", value=True)
+col_e1, col_e2, col_e3 = st.columns(3)
+with col_e1: eixo1_active = st.checkbox("Eixo 1: Total Qualis", value=True)
+with col_e2: eixo2_active = st.checkbox("Eixo 2: Razão Qualis", value=True)
+with col_e3: eixo3_active = st.checkbox("Eixo 3: Produção Ampliada", value=True)
+
+col_e4, col_e5, col_e6 = st.columns(3)
+with col_e4: eixo4_active = st.checkbox("Eixo 4: Orientações", value=True)
+with col_e5: eixo5_active = st.checkbox("Eixo 5: Bibliometria (Índice H)", value=True)
+with col_e6: eixo6_active = st.checkbox("Eixo 6: Qualidade de Periódicos", value=True)
 
 st.markdown("<br>", unsafe_allow_html=True) 
 
@@ -128,9 +130,13 @@ if file_docentes and file_prod and file_pessoas:
                 if prof_data.empty: continue
                 
                 # E1 & E2
-                col_q = 'Estrato Qualis (2021/2024) oficial'
+                if 'Estrato Qualis (2021/2024) oficial' in prof_data.columns:
+                    col_q = 'Estrato Qualis (2021/2024) oficial'
+                else:
+                    col_q = 'Estrato Qualis (2017/2020) unificado'
+                
                 q_counts = prof_data[prof_data[col_q].isin(qualis_validos)][col_q].value_counts()
-                e1_abs = sum(q_counts.get(q, 0) for q in qualis_validos) # Peso 1 conforme solicitado
+                e1_abs = sum(q_counts.get(q, 0) for q in qualis_validos) # Peso 1
                 
                 count_a = sum(q_counts.get(q, 0) for q in ['A1','A2','A3','A4'])
                 count_b = sum(q_counts.get(q, 0) for q in ['B1','B2','B3','B4'])
@@ -195,7 +201,7 @@ if file_docentes and file_prod and file_pessoas:
             df_final['Posição'] = range(1, len(df_final) + 1)
 
             # Resultados
-            st.success("✅ Ranking gerado com 6 eixos!")
+            st.success("✅ Ranking gerado com sucesso!")
             col_v = ['Posição', 'Docente', col_f, 'Área']
             if eixo6_active: col_v.append('E6_N')
             st.dataframe(df_final[col_v].head(15), use_container_width=True, hide_index=True)
@@ -203,7 +209,7 @@ if file_docentes and file_prod and file_pessoas:
             excel_buffer = BytesIO()
             with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                 df_final.to_excel(writer, index=False, sheet_name='Ranking')
-            st.download_button("📥 Baixar Ranking (.xlsx)", data=excel_buffer.getvalue(), file_name="ranking_pibic_6eixos.xlsx", use_container_width=True)
+            st.download_button("📥 Baixar Ranking (.xlsx)", data=excel_buffer.getvalue(), file_name="ranking_pibic_final.xlsx", use_container_width=True)
 
             # Gráfico
             st.divider()
