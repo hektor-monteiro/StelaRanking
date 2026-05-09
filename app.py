@@ -58,7 +58,7 @@ st.markdown("#### B. Parametrização de Categorias")
 col_param1, col_param2 = st.columns(2)
 
 with col_param1:
-    opcoes_padrao_e3 = ['Artigo publicado em periódicos', 'Trabalho publicado em anais de evento', 'Capítulo de livro publicado', 'Livro publicado', 'Programa de computador', 'Patentes e registros']
+    opcoes_padrao_e3 = ['Trabalho publicado em anais de evento', 'Capítulo de livro publicado', 'Livro publicado', 'Programa de computador', 'Patentes e registros']
     todas_opcoes_e3 = opcoes_padrao_e3 + ['Trabalhos técnicos', 'Apresentação de Trabalho e palestra', 'Outra produção bibliográfica', 'Outra produção técnica']
     target_production_types = st.multiselect("Categorias do Eixo 3:", options=todas_opcoes_e3, default=opcoes_padrao_e3, disabled=not eixo3_active)
 
