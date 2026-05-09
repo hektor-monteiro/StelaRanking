@@ -7,6 +7,19 @@ from io import BytesIO
 
 st.set_page_config(page_title="Sistema PIBIC - UNIFEI", layout="wide", page_icon="📊")
 
+# ==========================================
+# NOVO: BARRA LATERAL COM SLIDERS DE PESO
+# ==========================================
+st.sidebar.header("⚖️ Pesos dos Eixos")
+st.sidebar.markdown("Ajuste o multiplicador de cada eixo para o cálculo da Nota Final.")
+w1 = st.sidebar.slider("Peso Eixo 1 (Total Qualis)", 0.0, 5.0, 1.0, 0.5)
+w2 = st.sidebar.slider("Peso Eixo 2 (Razão Qualis)", 0.0, 5.0, 1.0, 0.5)
+w3 = st.sidebar.slider("Peso Eixo 3 (Prod. Ampliada)", 0.0, 5.0, 1.0, 0.5)
+w4 = st.sidebar.slider("Peso Eixo 4 (Orientações)", 0.0, 5.0, 1.0, 0.5)
+w5 = st.sidebar.slider("Peso Eixo 5 (Bibliometria)", 0.0, 5.0, 1.0, 0.5)
+w6 = st.sidebar.slider("Peso Eixo 6 (Periódicos)", 0.0, 5.0, 1.0, 0.5)
+st.sidebar.divider()
+
 st.title("📊 Sistema Multicritério de Avaliação Docente - PIBIC/UNIFEI")
 st.markdown("""
 Esta ferramenta processa os dados extraídos do Stela Experta para gerar o **ranking institucional de bolsas PIBIC**.
@@ -186,19 +199,42 @@ if file_docentes and file_prod and file_pessoas:
             for n, a in [('E1_N','E1_Abs'), ('E2_N','E2_Abs'), ('E3_N','E3_Abs'), ('E4_N','E4_Abs')]:
                 df_final[n] = df_final[a] / df_final[a].max() if df_final[a].max() > 0 else 0
 
-            # Nota Final
-            active = []
-            if eixo1_active: active.append(df_final['E1_N'])
-            if eixo2_active: active.append(df_final['E2_N'])
-            if eixo3_active: active.append(df_final['E3_N'])
-            if eixo4_active: active.append(df_final['E4_N'])
-            if eixo5_active: active.append(df_final['E5_N'])
-            if eixo6_active: active.append(df_final['E6_N'])
+            # -----------------------------------------------------
+            # MODIFICADO: Cálculo da Nota Final aplicando os pesos
+            # -----------------------------------------------------
+            active_weighted = []
+            active_weights = []
+            
+            if eixo1_active: 
+                active_weighted.append(df_final['E1_N'] * w1)
+                active_weights.append(w1)
+            if eixo2_active: 
+                active_weighted.append(df_final['E2_N'] * w2)
+                active_weights.append(w2)
+            if eixo3_active: 
+                active_weighted.append(df_final['E3_N'] * w3)
+                active_weights.append(w3)
+            if eixo4_active: 
+                active_weighted.append(df_final['E4_N'] * w4)
+                active_weights.append(w4)
+            if eixo5_active: 
+                active_weighted.append(df_final['E5_N'] * w5)
+                active_weights.append(w5)
+            if eixo6_active: 
+                active_weighted.append(df_final['E6_N'] * w6)
+                active_weights.append(w6)
 
             col_f = 'Nota Final (' + metodo_calculo.split()[0] + ')'
-            df_final[col_f] = sum(active) if "Soma" in metodo_calculo else sum(active)/len(active)
+            
+            if "Soma" in metodo_calculo:
+                df_final[col_f] = sum(active_weighted) if active_weighted else 0
+            else:
+                total_w = sum(active_weights)
+                df_final[col_f] = sum(active_weighted) / total_w if total_w > 0 else 0
+                
             df_final.sort_values(by=col_f, ascending=False, inplace=True)
             df_final['Posição'] = range(1, len(df_final) + 1)
+            # -----------------------------------------------------
 
             # ==========================================
             # 4. RESULTADOS E EXPORTAÇÃO
@@ -216,6 +252,7 @@ if file_docentes and file_prod and file_pessoas:
             # ==========================================
             # 5. DIAGNÓSTICO DE VIESES (Layout Matrix / Dashboard)
             # ==========================================
+            
             st.divider()
             st.header("🕵️ Dashboard Analítico de Vieses")
             st.markdown("Avalie se o conjunto de regras atual favorece injustamente algum perfil de investigador ou área de conhecimento.")
