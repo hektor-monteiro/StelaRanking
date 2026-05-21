@@ -102,7 +102,7 @@ st.markdown("<br><hr>", unsafe_allow_html=True)
 
 # Bloco D: Método de Agregação
 st.markdown("#### D. Método de Agregação")
-metodo_calculo = st.radio("Cálculo da Nota Final (após normalização global 0-1):", options=["Soma (Aditivo)", "Média (Compensatório)"], horizontal=True)
+metodo_calculo = st.radio("Cálculo da Nota Final (após normalização global 0-10):", options=["Soma (Aditivo)", "Média (Compensatório)"], horizontal=True)
 
 # ==========================================
 # 3. PROCESSAMENTO DOS DADOS
@@ -179,28 +179,35 @@ if file_docentes and file_prod and file_pessoas:
             df_final = pd.merge(df_res, df_pessoas[['Nome', 'Área da titulação máxima informada no CV-Lattes'] + h_cols], left_on='Docente', right_on='Nome', how='left')
             df_final.rename(columns={'Área da titulação máxima informada no CV-Lattes': 'Área'}, inplace=True)
 
-            # Normalizações Individuais
+            # ==========================================
+            # NORMALIZAÇÕES (Escala 0 a 10)
+            # ==========================================
+            
             # E5
             e5_norms = []
             for col in h_cols:
                 df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0)
-                df_final[col+'_N'] = df_final[col] / df_final[col].max() if df_final[col].max() > 0 else 0
+                df_final[col+'_N'] = (df_final[col] / df_final[col].max() * 10) if df_final[col].max() > 0 else 0
                 e5_norms.append(df_final[col+'_N'])
             df_final['E5_N'] = sum(e5_norms)/len(e5_norms) if e5_norms else 0
+            if isinstance(df_final['E5_N'], pd.Series) and df_final['E5_N'].max() > 0:
+                df_final['E5_N'] = (df_final['E5_N'] / df_final['E5_N'].max()) * 10
 
             # E6
             e6_norms = []
             for col in target_journal_metrics:
-                df_final[col+'_N'] = df_final[col] / df_final[col].max() if df_final[col].max() > 0 else 0
+                df_final[col+'_N'] = (df_final[col] / df_final[col].max() * 10) if df_final[col].max() > 0 else 0
                 e6_norms.append(df_final[col+'_N'])
             df_final['E6_N'] = sum(e6_norms)/len(e6_norms) if e6_norms else 0
+            if isinstance(df_final['E6_N'], pd.Series) and df_final['E6_N'].max() > 0:
+                df_final['E6_N'] = (df_final['E6_N'] / df_final['E6_N'].max()) * 10
 
             # Normalização Global (E1 a E4)
             for n, a in [('E1_N','E1_Abs'), ('E2_N','E2_Abs'), ('E3_N','E3_Abs'), ('E4_N','E4_Abs')]:
-                df_final[n] = df_final[a] / df_final[a].max() if df_final[a].max() > 0 else 0
+                df_final[n] = (df_final[a] / df_final[a].max() * 10) if df_final[a].max() > 0 else 0
 
             # -----------------------------------------------------
-            # MODIFICADO: Cálculo da Nota Final aplicando os pesos
+            # Cálculo da Nota Final aplicando os pesos
             # -----------------------------------------------------
             active_weighted = []
             active_weights = []
@@ -231,6 +238,11 @@ if file_docentes and file_prod and file_pessoas:
             else:
                 total_w = sum(active_weights)
                 df_final[col_f] = sum(active_weighted) / total_w if total_w > 0 else 0
+            
+            # Normalização final para garantir escala exata de 0 a 10 na classificação geral
+            max_nf = df_final[col_f].max()
+            if max_nf > 0:
+                df_final[col_f] = (df_final[col_f] / max_nf) * 10
                 
             df_final.sort_values(by=col_f, ascending=False, inplace=True)
             df_final['Posição'] = range(1, len(df_final) + 1)
@@ -365,6 +377,28 @@ if file_docentes and file_prod and file_pessoas:
             plt.xticks(rotation=45, ha='right', fontsize=9)
             ax_box.set_ylabel('Posição (Menor é Melhor)')
             st.pyplot(fig_box)
+
+            # Quarta Linha (Largura Total) - TOP 50%
+            st.divider()
+            st.subheader("6. Competitividade Geral por Área (Top 50%)")
+            st.markdown("""
+            **Uso:** Semelhante ao gráfico anterior, mas filtrando apenas os 50% dos investigadores mais bem pontuados do ranking. 
+            Permite verificar se a elite do edital é monopolizada por alguma ciência específica.
+            """)
+            df_top50 = df_final.head(max(1, len(df_final) // 2)).copy()
+            if not df_top50.empty:
+                top_areas_50 = df_top50['Área'].value_counts().nlargest(15).index
+                df_plot_50 = df_top50[df_top50['Área'].isin(top_areas_50)].copy()
+                area_order_50 = df_plot_50.groupby('Área')['Posição'].median().sort_values().index
+                fig_box_50, ax_box_50 = plt.subplots(figsize=(12, 6))
+                sns.boxplot(data=df_plot_50, x='Área', y='Posição', order=area_order_50, palette='Set3', showfliers=False, ax=ax_box_50)
+                sns.stripplot(data=df_plot_50, x='Área', y='Posição', order=area_order_50, color='black', alpha=0.3, size=3, ax=ax_box_50)
+                ax_box_50.invert_yaxis()
+                plt.xticks(rotation=45, ha='right', fontsize=9)
+                ax_box_50.set_ylabel('Posição (Menor é Melhor)')
+                st.pyplot(fig_box_50)
+            else:
+                st.warning("Dados insuficientes para gerar o gráfico de Top 50%.")
 
 else:
     st.info("⚠️ Aguarde o upload das três planilhas.")
