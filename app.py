@@ -77,8 +77,8 @@ with col_param1:
     target_production_types = st.multiselect("Categorias do Eixo 3:", options=todas_opcoes_e3, default=opcoes_padrao_e3, disabled=not eixo3_active)
 
 with col_param2:
-    opcoes_padrao_e4 = ['Iniciação Científica', 'Dissertação de mestrado', 'Tese de doutorado']
-    todas_opcoes_e4 = opcoes_padrao_e4 + ['Monografia de conclusão/especialização', 'Trabalho de conclusão de curso', 'Supervisão de pós-doutorado']
+    opcoes_padrao_e4 = ['Iniciação Científica', 'Dissertação de mestrado', 'Tese de doutorado', 'Trabalho de conclusão de curso de graduação']
+    todas_opcoes_e4 = opcoes_padrao_e4 + ['Monografia de conclusão/especialização', 'Supervisão de pós-doutorado']
     target_advising_types = st.multiselect("Categorias do Eixo 4:", options=todas_opcoes_e4, default=opcoes_padrao_e4, disabled=not eixo4_active)
 
 # Bloco C: Indicadores de Impacto
