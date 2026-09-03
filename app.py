@@ -143,7 +143,7 @@ if file_docentes and file_prod and file_pessoas:
                 if prof_data.empty: continue
                 
                 # E1 & E2
-                if 'Estrato Qualis (2021/2024) oficial' in prof_data.columns:
+                if 'Estrato Qualis (2017/2020) unificado' not in prof_data.columns:
                     col_q = 'Estrato Qualis (2021/2024) oficial'
                 else:
                     col_q = 'Estrato Qualis (2017/2020) unificado'
