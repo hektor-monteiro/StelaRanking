@@ -159,7 +159,7 @@ if file_docentes and file_prod and file_pessoas:
                 
                 # E3 & E4
                 e3_abs = len(prof_data[prof_data['Tipo da produção'].isin(target_production_types)])
-                e4_abs = len(prof_data[(prof_data['Tipo agrupador da produção'] == 'Orientação concluída') & (prof_data['Tipo da produção'].isin(target_advising_types))])
+                e4_abs = len(prof_data[(prof_data['Tipo agrupador da produção'] == 'Orientação concluída') & (prof_data['Tipo da produção'].isin(target_advising_types)) & (prof_data['Subtipo da produção'] != 'Coorientação')])
                 
                 # E6
                 e6_data = {}
